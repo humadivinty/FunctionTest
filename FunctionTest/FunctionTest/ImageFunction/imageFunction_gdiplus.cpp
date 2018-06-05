@@ -452,7 +452,9 @@ bool Tool_Img_ScaleJpg(PBYTE pbSrc, int iSrcLen, PBYTE pbDst, DWORD *iDstLen, in
     Graphics grDraw(&bmpDst);
 
     // »æÍ¼
-    grDraw.DrawImage(&bmpSrc, 0, 0, bmpSrc.GetWidth(), bmpSrc.GetHeight());
+    //grDraw.DrawImage(&bmpSrc, 0, 0, bmpSrc.GetWidth(), bmpSrc.GetHeight());
+	Rect destRect(0, 0, iDstWidth, iDstHeight);
+    grDraw.DrawImage(&bmpSrc, destRect);
     if (Ok != grDraw.GetLastStatus())
     {
         pstmp->Release();
