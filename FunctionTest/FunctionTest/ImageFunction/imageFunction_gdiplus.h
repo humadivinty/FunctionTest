@@ -99,9 +99,10 @@ typedef struct tag_PositionInfo
 
 typedef struct _OverlayInfo
 {
-    WCHAR* szOverlayString;     //需要叠加的字符串
+    const WCHAR* szOverlayString;     //需要叠加的字符串
     int itextLength;                    //字符串长度
     int iFontSize;                        //叠加字符的大小
+    int iStyle;                             //叠加风格: 1时,只在字符背后叠加；2时整行叠加; 默认为2
     COLOR_INFO st_fontColor;    //字体颜色
     COLOR_INFO st_backgroundColor;  //背景颜色
     PositionInfo st_FontPosition;    //叠加字符的位置
@@ -109,7 +110,8 @@ typedef struct _OverlayInfo
     _OverlayInfo() :
         szOverlayString(NULL),
         itextLength(0),
-        iFontSize(32)
+        iFontSize(32),
+        iStyle(2)
     {
     }
     ~_OverlayInfo()
@@ -118,6 +120,21 @@ typedef struct _OverlayInfo
     }
 
 }OverlayInfo;
+
+typedef struct tag_RectF
+{
+    float X;
+    float Y;
+    float Width;
+    float Height;
+
+    tag_RectF() :
+        X(0.0),
+        Y(0.0),
+        Width(0.0),
+        Height(0.0)
+    {}
+}MyRectf;
 
 //************************************
 // Method:        Tool_GetEncoderClsid
@@ -321,7 +338,7 @@ bool Tool_Yuv4222BmpFile(BYTE* pbDest, int iDestBufLen, int* piDestLen, BYTE* pb
 // Parameter:    float & stringWidth;输出参数， 叠加字符占用宽度
 // Parameter:    float & stringHeight; 输出参数，叠加字符占用高度
 //************************************
-bool Tool_CalculateStringWithAndHeight(const char* overlayString, const int imageWidth, const int imageHeight, const int fontSize, float& stringWidth, float& stringHeight);
+bool Tool_CalculateStringWithAndHeight(const char* overlayString, const int imageWidth, const int imageHeight, const int fontSize, MyRectf& rectfOut);
 
 #endif
 

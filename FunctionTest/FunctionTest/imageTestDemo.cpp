@@ -43,6 +43,7 @@ void test_Tool_DrawString_1_Demo()
     overlayInfo1.st_FontPosition.iPosY = 0;
 
     overlayInfo1.szOverlayString = L"heasdfadlfjadlf;\tjasdlfjasdfl;\nkjasdf";
+    overlayInfo1.iStyle = 1;
 
     //Tool_SaveFileToDisk("./dest1.bmp", pSrcBuf, iSrcBufLength);
     int iRet = Tool_DrawString_1(dataStruct, overlayInfo1, pDestBuf, iDestBufLength);

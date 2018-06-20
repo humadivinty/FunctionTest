@@ -47,6 +47,10 @@ int Tool_DrawString_1(const ImgDataStruct dataStruct, const OverlayInfo overlayI
 {
 #define POS_UP_TO_IMG (-1)
 #define POS_DOWN_TO_IMG (-2)
+
+#define STYLE_ONLY_FONT_BACKGROUND (1)
+#define STYLE_WHOLE_LINE (2)
+
     if (!dataStruct.srcImgData || dataStruct.srcImgDataLengh <= 0 || !destImgBuffer || destBufferSize <= 0)
     {
         printf("myDrawString, the parameter is invalid, return 1.\n ");
@@ -124,7 +128,7 @@ int Tool_DrawString_1(const ImgDataStruct dataStruct, const OverlayInfo overlayI
     Gdiplus::Color fontColor(overlayInfo.st_fontColor.iColorAlpha, overlayInfo.st_fontColor.iColorR, overlayInfo.st_fontColor.iColorG, overlayInfo.st_fontColor.iColorB);
     Gdiplus::SolidBrush  fontBrush(fontColor);
     Gdiplus::FontFamily  fontFamily(L"Times New Roman");
-    Gdiplus::Font        font(&fontFamily, overlayInfo.iFontSize, FontStyleRegular, UnitPixel);
+    Gdiplus::Font        font(&fontFamily, (float)(overlayInfo.iFontSize), FontStyleRegular, UnitPixel);
 
     Gdiplus::RectF  rectfOut;
     {
@@ -133,26 +137,26 @@ int Tool_DrawString_1(const ImgDataStruct dataStruct, const OverlayInfo overlayI
         Gdiplus::Graphics    graphicsTest(&bgtest);
         Gdiplus::RectF rtGdiplus;//计算消息主题的宽度
         rtGdiplus.X = (overlayInfo.st_FontPosition.iPosX > 0) ? overlayInfo.st_FontPosition.iPosX : 0;
-        rtGdiplus.Y = (overlayInfo.st_FontPosition.iPosY > 0) ? overlayInfo.st_FontPosition.iPosY: 0;
+        rtGdiplus.Y = (overlayInfo.st_FontPosition.iPosY > 0) ? overlayInfo.st_FontPosition.iPosY : 0;
         rtGdiplus.Width = (float)iSrcWidth;
         rtGdiplus.Height = -1;
         graphicsTest.MeasureString(overlayInfo.szOverlayString, -1, &font, rtGdiplus, &rectfOut);
         printf("MeasureString width = %f, height = %f\n", rectfOut.Width, rectfOut.Height);
     }
-    float fDestWidth = 0.0, fDestHeight = 0.0;
+    int iDestWidth = 0.0, iDestHeight = 0.0;
     if (overlayInfo.st_FontPosition.iPosY == POS_UP_TO_IMG   \
         || overlayInfo.st_FontPosition.iPosY == POS_DOWN_TO_IMG
         )
     {
-        fDestWidth = iSrcWidth;
-        fDestHeight = iSrcHeight + rectfOut.Height;
+        iDestWidth = iSrcWidth;
+        iDestHeight = (iSrcHeight + rectfOut.Height);
     }
     else
     {
-        fDestWidth = iSrcWidth;
-        fDestHeight = iSrcHeight;
+        iDestWidth = iSrcWidth;
+        iDestHeight = iSrcHeight;
     }
-    Gdiplus::Bitmap bmpDst(fDestWidth, fDestHeight);
+    Gdiplus::Bitmap bmpDst(iDestWidth, iDestHeight);
     Gdiplus::Graphics    graphics(&bmpDst);
 
     //先画图，再画矩形
@@ -183,18 +187,37 @@ int Tool_DrawString_1(const ImgDataStruct dataStruct, const OverlayInfo overlayI
     }
 
     //绘制矩形填充区
+
     switch (overlayInfo.st_FontPosition.iPosY)
     {
     case POS_UP_TO_IMG:        //矩形绘制到图片上方之外
-        destRect.Y = 0;        
+        destRect.X = 0;
+        destRect.Y = 0;
         break;
     case POS_DOWN_TO_IMG:        //矩形绘制到图片下方之外
+        destRect.X = 0;
         destRect.Y = iSrcHeight;
         break;
     default:       //图片之内
+        destRect.X = (overlayInfo.st_FontPosition.iPosX >= 0) ? overlayInfo.st_FontPosition.iPosX : 0;
         destRect.Y = (overlayInfo.st_FontPosition.iPosY < 0) ? 0 : overlayInfo.st_FontPosition.iPosY;
         break;
     }
+
+    //矩形宽度决策
+    switch (overlayInfo.iStyle)
+    {
+    case STYLE_ONLY_FONT_BACKGROUND:        //
+        destRect.Width = rectfOut.Width;
+        break;
+    case STYLE_WHOLE_LINE:        //矩形绘制到整行        
+        destRect.Width = iSrcWidth;
+        break;
+    default:       //图片之内
+        destRect.Width = iSrcWidth;
+        break;
+    }
+
     destRect.Height = rectfOut.Height;
     Gdiplus::SolidBrush myBrush(Gdiplus::Color(overlayInfo.st_backgroundColor.iColorAlpha, overlayInfo.st_backgroundColor.iColorR, overlayInfo.st_backgroundColor.iColorG, overlayInfo.st_backgroundColor.iColorB));
     rSata = graphics.FillRectangle(&myBrush, destRect);  //绘制矩形背景颜色
@@ -222,9 +245,9 @@ int Tool_DrawString_1(const ImgDataStruct dataStruct, const OverlayInfo overlayI
     rectString.Y = destRect.Y;
     rectString.Width = rectfOut.Width;
     rectString.Height = rectfOut.Height;
-#ifdef DEBUG
-    graphics.DrawRectangle(&myPen, rectString);
-#endif
+    //#ifdef DEBUG
+    //    graphics.DrawRectangle(&myPen, rectString);
+    //#endif
 
     rSata = graphics.DrawString(overlayInfo.szOverlayString, -1, &font, rectString, NULL, &fontBrush);
     if (rSata != Gdiplus::Ok)
@@ -247,9 +270,9 @@ int Tool_DrawString_1(const ImgDataStruct dataStruct, const OverlayInfo overlayI
     }
     printf("DrawString status = %d\n", rSata);
 
-    CLSID jpgClsid;
+    //CLSID jpgClsid;
     CLSID bmpClsid;
-    Tool_GetEncoderClsid(L"image/jpeg", &jpgClsid);
+    //Tool_GetEncoderClsid(L"image/jpeg", &jpgClsid);
     Tool_GetEncoderClsid(L"image/bmp", &bmpClsid);
 
     // 将位图按照JPG的格式保存到输出流中
@@ -937,7 +960,7 @@ bool Tool_Yuv422ToRgb(BYTE *pbDest, BYTE *pbSrc, int iSrcWidth, int iSrcHeight, 
     return true;
 }
 
-bool Tool_CalculateStringWithAndHeight(const char* overlayString, const int imageWidth, const int imageHeight, const int fontSize, float& stringWidth, float& stringHeight)
+bool Tool_CalculateStringWithAndHeight(const char* overlayString, const int imageWidth, const int imageHeight, const int fontSize, MyRectf& rectfOut)
 {
     if (overlayString == NULL 
         || imageWidth <=0
@@ -955,7 +978,7 @@ bool Tool_CalculateStringWithAndHeight(const char* overlayString, const int imag
     iSrcWidth = imageWidth;
     iSrcHeight = imageHeight;
 
-    Gdiplus::RectF  rectfOut;
+    Gdiplus::RectF  TempRectf;
     //计算消息主题的高度
     Gdiplus::Bitmap bgtest(iSrcWidth, iSrcHeight);
     Gdiplus::Graphics    graphicsTest(&bgtest);
@@ -968,11 +991,13 @@ bool Tool_CalculateStringWithAndHeight(const char* overlayString, const int imag
     rtGdiplus.Y = 0;
     rtGdiplus.Width = iSrcWidth;
     rtGdiplus.Height = -1;
-    Gdiplus::Status calSta = graphicsTest.MeasureString(wstrOverlay.c_str(), -1, &font, rtGdiplus, &rectfOut);
-    printf("calSta =%d,  MeasureString width = %f, height = %f\n", calSta, rectfOut.Width, rectfOut.Height);
+    Gdiplus::Status calSta = graphicsTest.MeasureString(wstrOverlay.c_str(), -1, &font, rtGdiplus, &TempRectf);
+    printf("calSta =%d,  MeasureString width = %f, height = %f\n", calSta, TempRectf.Width, TempRectf.Height);
 
-    stringWidth = rectfOut.Width;
-    stringHeight = rectfOut.Height;
-    return false;
+    rectfOut.X = TempRectf.X;
+    rectfOut.Y = TempRectf.Y;
+    rectfOut.Width = TempRectf.Width;
+    rectfOut.Height = TempRectf.Height;
+    return true;
 }
 
