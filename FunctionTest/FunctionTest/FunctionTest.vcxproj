@@ -83,6 +83,7 @@
   <ItemGroup>
     <ClInclude Include="DirFunction\DirFunction.h" />
     <ClInclude Include="ImageFunction\imageFunction_gdiplus.h" />
+    <ClInclude Include="imageTestDemo.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="tinyxml\tinystr.h" />
@@ -93,6 +94,7 @@
     <ClCompile Include="DirFunction\DirFunction.cpp" />
     <ClCompile Include="FunctionTest.cpp" />
     <ClCompile Include="ImageFunction\imageFunction_gdiplus.cpp" />
+    <ClCompile Include="imageTestDemo.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>

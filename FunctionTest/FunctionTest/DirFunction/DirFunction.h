@@ -93,7 +93,7 @@ bool Tool_MakeDir(const char* chImgPath);
 // Returns Describe: 返回文件占用的硬盘空间大小
 // Parameter:    const char * FileName ，文件完整路径
 //************************************
-long Tool_GetFileSize(const char *FileName);
+size_t Tool_GetFileSize(const char *FileName);
 
 //************************************
 // Method:        Tool_ExcuteShellCMD
@@ -128,7 +128,7 @@ void ExcuteCMD(char* pChCommand);
 // Parameter:    void * pImgData        :需要保存到文件的二进制数据
 // Parameter:    DWORD dwImgSize    ：数据长度
 //************************************
-bool Tool_SaveFileToDisk(char* chImgPath, void* pImgData, DWORD dwImgSize);
+bool Tool_SaveFileToDisk(char* chImgPath, void* pImgData, size_t iImgSize);
 
 #ifdef WIN32
 //************************************
@@ -176,4 +176,18 @@ bool Tool_pingIPaddress(const char* IpAddress);
 // Parameter:    std::list<std::string> & files     :输出参数，文件名列表
 //************************************
 void Tool_getFiles(const std::string& path, std::list<std::string>& files);
+
+
+//************************************
+// Method:        Tool_GetFileInfo
+// Describe:        获取指定文件的二进制内容，并返回实际大小
+// FullName:      Tool_GetFileInfo
+// Access:          public 
+// Returns:        bool :获取成功时返回 true, 获取失败时返回 false
+// Returns Describe:
+// Parameter:    const char * FileName  ：文件名称
+// Parameter:    void * infoBuf         ：传入的数据缓冲区
+// Parameter:    size_t & bufLength    :输入时为缓冲区大小，输出时为内容实际大小
+//************************************
+bool Tool_GetFileInfo(const char* FileName, void* infoBuf, size_t& bufLength);
 #endif

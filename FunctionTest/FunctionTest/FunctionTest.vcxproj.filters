@@ -51,6 +51,9 @@
     <ClInclude Include="DirFunction\DirFunction.h">
       <Filter>DirFunction</Filter>
     </ClInclude>
+    <ClInclude Include="imageTestDemo.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -79,6 +82,9 @@
     </ClCompile>
     <ClCompile Include="DirFunction\DirFunction.cpp">
       <Filter>DirFunction</Filter>
+    </ClCompile>
+    <ClCompile Include="imageTestDemo.cpp">
+      <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

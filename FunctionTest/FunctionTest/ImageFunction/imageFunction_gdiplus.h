@@ -3,7 +3,7 @@
 
 #include<windows.h>
 #include <string>
-
+#include <gdiplus.h>
 
 //BMP文件组成:
 /*
@@ -70,22 +70,46 @@ typedef struct _ImgDataStruct{
     }
 }ImgDataStruct;
 
+typedef struct tag_COLOR_INFO
+{
+    int iColorAlpha;        //透明度  0-255 其中0为全透明
+    int iColorR;               //红色分量 0-255
+    int iColorG;               //绿色分量 0-255
+    int iColorB;               //蓝色分量 0-255
+
+    tag_COLOR_INFO() :
+        iColorAlpha(0),
+        iColorR(255),
+        iColorG(255),
+        iColorB(255)
+    {  }
+}COLOR_INFO;
+
+typedef struct tag_PositionInfo
+{
+    int iPosX;          //字符叠加的左顶点 x 坐标， 范围是大于等于0，
+    int iPosY;          //字符叠加的左顶点 y 坐标 ， 当值为-1时， 在图片的上方之外的区域叠加 ; 值为-2时， 在图片下方之外的区域叠加， 其他负数的值按-2处理, 默认为-2                            
+
+    tag_PositionInfo() :
+        iPosX(0),
+        iPosY(-2)
+    {};
+
+}PositionInfo;
+
 typedef struct _OverlayInfo
 {
-    WCHAR* szOverlayString;
-    int itextLength;
-    int iFontSize;
-    int iColorR;
-    int iColorG;
-    int iColorB;
+    WCHAR* szOverlayString;     //需要叠加的字符串
+    int itextLength;                    //字符串长度
+    int iFontSize;                        //叠加字符的大小
+    COLOR_INFO st_fontColor;    //字体颜色
+    COLOR_INFO st_backgroundColor;  //背景颜色
+    PositionInfo st_FontPosition;    //叠加字符的位置
 
     _OverlayInfo() :
         szOverlayString(NULL),
         itextLength(0),
-        iFontSize(12),
-        iColorR(0),
-        iColorG(0),
-        iColorB(0)
+        iFontSize(32)
     {
     }
     ~_OverlayInfo()
@@ -119,7 +143,7 @@ int Tool_GetEncoderClsid(const WCHAR* format, CLSID* pClsid);
 // Parameter:    UCHAR * destImgBuffer  图片缓冲区，输出图片为bmp格式，rgb24
 // Parameter:    long & destBufferSize ， 输入输出参数， 传入图片缓冲区长度，输出实际图片大小
 //************************************
-int Tool_DrawString_1(const ImgDataStruct dataStruct, const OverlayInfo overlayInfo, UCHAR* destImgBuffer, long& destBufferSize);
+int Tool_DrawString_1(const ImgDataStruct dataStruct, const OverlayInfo overlayInfo, UCHAR* destImgBuffer, size_t& destBufferSize);
 
 //************************************
 // Method:        Tool_OverlayStringToImg
@@ -282,6 +306,22 @@ bool Tool_Yuv422ToRgb(BYTE *pbDest, BYTE *pbSrc, int iSrcWidth, int iSrcHeight, 
 //          返回E_POINTER, 参数中包含有非法的指针;
 //          返回E_FAIL, 表示未知的错误导致操作失败;
 bool Tool_Yuv4222BmpFile(BYTE* pbDest, int iDestBufLen, int* piDestLen, BYTE* pbSrc, int iSrcWidth, int iSrcHeight);
+
+//************************************
+// Method:        Tool_CalculateStringWithAndHeiht
+// Describe:        计算叠加字符在指定图片中占用的长度和高度
+// FullName:      Tool_CalculateStringWithAndHeiht
+// Access:          public 
+// Returns:        bool
+// Returns Describe:
+// Parameter:    char * overlayString ; 输入参数, 叠加的字符串
+// Parameter:    int imageWidth;  输入参数，图片高度
+// Parameter:    int imageHeight;  输入参数,图片宽度
+// Parameter:    int fontSize;  输入参数,字体大小
+// Parameter:    float & stringWidth;输出参数， 叠加字符占用宽度
+// Parameter:    float & stringHeight; 输出参数，叠加字符占用高度
+//************************************
+bool Tool_CalculateStringWithAndHeight(const char* overlayString, const int imageWidth, const int imageHeight, const int fontSize, float& stringWidth, float& stringHeight);
 
 #endif
 

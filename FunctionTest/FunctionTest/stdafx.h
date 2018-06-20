@@ -14,3 +14,12 @@
 
 // TODO:  在此处引用程序需要的其他头文件
 #include <windows.h>
+
+#define MAX_IMG_BUF (20*1024*1024)
+
+#define SAFE_DELETT_ARRAY(arg) \
+if (arg)                    \
+{                             \
+    delete[] arg;        \
+    arg = NULL;       \
+}

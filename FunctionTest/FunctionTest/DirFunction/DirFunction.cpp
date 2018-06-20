@@ -199,7 +199,7 @@ bool Tool_IsFileExist(const char* FilePath)
     return bRet;
 }
 
-long Tool_GetFileSize(const char *FileName)
+size_t Tool_GetFileSize(const char *FileName)
 {
     //FILE* tmpFile = fopen(FileName, "rb");
     FILE* tmpFile = NULL;
@@ -241,7 +241,7 @@ void ExcuteCMD(char* pChCommand)
 #endif // WIN32
 }
 
-bool Tool_SaveFileToDisk(char* chImgPath, void* pImgData, DWORD dwImgSize)
+bool Tool_SaveFileToDisk(char* chImgPath, void* pImgData, size_t iImgSize)
 {
     printf("begin SaveImgToDisk");
     if (NULL == pImgData)
@@ -251,39 +251,46 @@ bool Tool_SaveFileToDisk(char* chImgPath, void* pImgData, DWORD dwImgSize)
     }
     bool bRet = false;
     size_t iWritedSpecialSize = 0;
-    std::string tempFile(chImgPath);
-    size_t iPosition = tempFile.rfind("\\");
-    std::string tempDir = tempFile.substr(0, iPosition + 1);
-    if (MakeSureDirectoryPathExists(tempDir.c_str()))
+    if (NULL != strstr(chImgPath, ".\\") && NULL != strstr(chImgPath, "./"))
     {
-        FILE* fp = NULL;
-        //fp = fopen(chImgPath, "wb+");
-        fopen_s(&fp, chImgPath, "wb+");
-        if (fp)
-        {
-            //iWritedSpecialSize = fwrite(pImgData, dwImgSize , 1, fp);
-            iWritedSpecialSize = fwrite(pImgData, 1, dwImgSize, fp);
-            fclose(fp);
-            fp = NULL;
-            bRet = true;
-        }
-        if (iWritedSpecialSize == dwImgSize)
+        std::string tempFile(chImgPath);
+        size_t iPosition = tempFile.rfind("\\");
+        std::string tempDir = tempFile.substr(0, iPosition + 1);
+        if (!MakeSureDirectoryPathExists(tempDir.c_str()))
         {
             char chLogBuff[MAX_PATH] = { 0 };
-            //sprintf_s(chLogBuff, "%s save success", chImgPath);
-            sprintf_s(chLogBuff, "%s save success", chImgPath);
+            //sprintf_s(chLogBuff, "%s save failed", chImgPath);
+            sprintf_s(chLogBuff, "path %s create failed.\n", chImgPath);
             printf(chLogBuff);
+            return false;
         }
+    }
+
+    FILE* fp = NULL;
+    //fp = fopen(chImgPath, "wb+");
+    fopen_s(&fp, chImgPath, "wb+");
+    if (fp)
+    {
+        //iWritedSpecialSize = fwrite(pImgData, dwImgSize , 1, fp);
+        iWritedSpecialSize = fwrite(pImgData, 1, iImgSize, fp);
+        fclose(fp);
+        fp = NULL;
+        bRet = true;
     }
     else
     {
-        char chLogBuff[MAX_PATH] = { 0 };
-        //sprintf_s(chLogBuff, "%s save failed", chImgPath);
-        sprintf_s(chLogBuff, "%s save failed", chImgPath);
-        printf(chLogBuff);
+        printf("create file failed.\n");
         bRet = false;
     }
-    printf("end SaveImgToDisk");
+    if (iWritedSpecialSize == iImgSize)
+    {
+        char chLogBuff[MAX_PATH] = { 0 };
+        //sprintf_s(chLogBuff, "%s save success", chImgPath);
+        sprintf_s(chLogBuff, "%s save success\n", chImgPath);
+        printf(chLogBuff);
+    }
+
+    printf("end SaveImgToDisk.\n");
     return bRet;
 }
 
@@ -485,4 +492,47 @@ void Tool_getFiles(const std::string& path, std::list<std::string>& files)
         } while (_findnext(hFile, &fileInfo) == 0);
         _findclose(hFile);
     }
+}
+
+bool Tool_GetFileInfo(const char* FileName, void* infoBuf, size_t& bufLength)
+{
+    if (!Tool_IsFileExist(FileName))
+    {
+        printf("文件路径不存在.\n");
+        bufLength = 0;
+        return false;
+    }
+    if (infoBuf == NULL || bufLength <= 0)
+    {
+        printf("参数错误.\n");
+        return false;
+    }
+
+    size_t iFileSize = Tool_GetFileSize(FileName);
+    if (iFileSize > bufLength)
+    {
+        bufLength = iFileSize;
+        printf("传入缓冲区的长度不足.\n");
+        return false;
+    }
+    bufLength = iFileSize;
+    FILE* pFile = NULL;
+    fopen_s(&pFile, FileName, "rb");
+    if (pFile)
+    {
+        size_t iReadSize = fread(infoBuf, 1, iFileSize, pFile);
+        fclose(pFile);
+        pFile = NULL;
+        if (iReadSize != iFileSize)
+        {
+            printf("文件读取错误，大小不一致.\n");
+            return false;
+        }
+        else
+        {
+            return true;
+        }
+    }
+    printf("文件打开失败.\n");
+    return false;
 }
