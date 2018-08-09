@@ -118,6 +118,28 @@ void Tool_ExcuteShellCMD(char* pChCommand);
 void ExcuteCMD(char* pChCommand);
 
 //************************************
+// Method:        Tool_ExcuteCMDbyCreateProcess
+// Describe:        通过创建子进程来执行 cmd 命令
+// FullName:      Tool_ExcuteCMDbyCreateProcess
+// Access:          public 
+// Returns:        bool
+// Returns Describe:
+// Parameter:    const char * CmdName: 传入的完整命令，注意在 命令开头要加上 /c
+//************************************
+bool Tool_ExcuteCMDbyCreateProcess(const char* CmdName);
+
+//************************************
+// Method:        Tool_DeleteFileByCMD
+// Describe:        通过命令删除指定路径下的文件
+// FullName:      Tool_DeleteFileByCMD
+// Access:          public 
+// Returns:        void
+// Returns Describe:
+// Parameter:    const char * chFileName
+//************************************
+void Tool_DeleteFileByCMD(const char* chFileName);
+
+//************************************
 // Method:        Tool_SaveFileToDisk
 // Describe:        保存数据到指定路径的文件中
 // FullName:      Tool_SaveFileToDisk
@@ -167,15 +189,15 @@ bool Tool_pingIPaddress(const char* IpAddress);
 
 //************************************
 // Method:        Tool_getFiles
-// Describe:        获取指定路径下的所有文件名
+// Describe:        获取指定路径下的指定后缀名所有文件路径
 // FullName:      Tool_getFiles
 // Access:          public 
-// Returns:        void
+// Returns:        std::list<std::string> ： 文件路径列表
 // Returns Describe:
 // Parameter:    const std::string & path  :输入参数，路径名称，为绝对值路径
-// Parameter:    std::list<std::string> & files     :输出参数，文件名列表
+// Parameter:     const std::string& filter     :输如参数，后缀名 如: *.dat, *.xml）
 //************************************
-void Tool_getFiles(const std::string& path, std::list<std::string>& files);
+std::list<std::string> Tool_getFilesPath(const std::string& cate_dir, const std::string& filter);
 
 
 //************************************
@@ -189,5 +211,37 @@ void Tool_getFiles(const std::string& path, std::list<std::string>& files);
 // Parameter:    void * infoBuf         ：传入的数据缓冲区
 // Parameter:    size_t & bufLength    :输入时为缓冲区大小，输出时为内容实际大小
 //************************************
-bool Tool_GetFileInfo(const char* FileName, void* infoBuf, size_t& bufLength);
+bool Tool_LoadFileDataToBuffer(const char* FileName, void* infoBuf, size_t& bufLength);
+
+//************************************
+// Method:        Tool_GetCurrentTime
+// Describe:        获取本地时间，时间精确到毫秒
+// FullName:      Tool_GetCurrentTime
+// Access:          public 
+// Returns:        SYSTEMTIME
+// Returns Describe:
+//************************************
+SYSTEMTIME Tool_GetCurrentTime();
+
+//************************************
+// Method:        Tool_GetCurrentPath
+// Describe:        获取当前程序所在目录
+// FullName:      Tool_GetCurrentPath
+// Access:          public 
+// Returns:        const TCHAR*
+// Returns Describe:
+//************************************
+const TCHAR* Tool_GetCurrentPath();
+
+//************************************
+// Method:        Tool_SafeCloseThread
+// Describe:        安全关闭线程句柄,防止等待期间的线程死锁
+// FullName:      Tool_SafeCloseThread
+// Access:          public 
+// Returns:        int
+// Returns Describe:
+// Parameter:    HANDLE & threadHandle
+//************************************
+int Tool_SafeCloseThread(HANDLE& threadHandle);
+
 #endif

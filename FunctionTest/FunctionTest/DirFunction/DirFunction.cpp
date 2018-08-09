@@ -189,32 +189,45 @@ bool Tool_IsFileExist(const char* FilePath)
     FILE* tempFile = NULL;
     bool bRet = false;
     //tempFile = fopen(FilePath, "r");
-    fopen_s(&tempFile, FilePath, "r");
+    errno_t errCode;
+    _set_errno(0);
+    errCode = fopen_s(&tempFile, FilePath, "r");
     if (tempFile)
     {
         bRet = true;
         fclose(tempFile);
         tempFile = NULL;
     }
+    else
+    {
+        printf("Tool_IsFileExist, failed, error code = %d", errCode);
+    }
     return bRet;
 }
 
 size_t Tool_GetFileSize(const char *FileName)
 {
-    //FILE* tmpFile = fopen(FileName, "rb");
+    //FILE* tmpFile = fopen(FileName, "rb");    
     FILE* tmpFile = NULL;
-    fopen_s(&tmpFile, FileName, "rb");
+    errno_t errCode;
+    _set_errno(0);
+    errCode = fopen_s(&tmpFile, FileName, "rb");
     if (tmpFile)
     {
-        fseek(tmpFile, 0, SEEK_END);
-        long fileSize = ftell(tmpFile);
+        //fseek(tmpFile, 0, SEEK_END);
+        //long fileSize = ftell(tmpFile);
+        //fclose(tmpFile);
+        //tmpFile = NULL;
+        //return fileSize;
+
+        long fileSize = _filelength(_fileno(tmpFile));
         fclose(tmpFile);
         tmpFile = NULL;
         return fileSize;
     }
     else
     {
-        //"open file failed.";
+        printf("Tool_GetFileSize, failed, error code = %d", errCode);
         return 0;
     }
 }
@@ -241,56 +254,83 @@ void ExcuteCMD(char* pChCommand)
 #endif // WIN32
 }
 
-bool Tool_SaveFileToDisk(char* chImgPath, void* pImgData, size_t iImgSize)
+bool Tool_SaveFileToDisk(char* szPath, void* fileData, size_t fileSize)
 {
-    printf("begin SaveImgToDisk");
-    if (NULL == pImgData)
+    //LOGFMTD("begin Tool_SaveFileToPath");
+    if (NULL == fileData || NULL == szPath)
     {
-        printf("end1 SaveImgToDisk");
+        printf("Tool_SaveFileToPath, failed.NULL == pImgData || NULL == chImgPath");
         return false;
     }
+    char chLogBuff[MAX_PATH] = { 0 };
     bool bRet = false;
-    size_t iWritedSpecialSize = 0;
-    if (NULL != strstr(chImgPath, ".\\") && NULL != strstr(chImgPath, "./"))
+
+    if (NULL != strstr(szPath, "\\") || NULL != strstr(szPath, "/"))
     {
-        std::string tempFile(chImgPath);
-        size_t iPosition = tempFile.rfind("\\");
+        std::string tempFile(szPath);
+        size_t iPosition = std::string::npos;
+        if (NULL != strstr(szPath, "\\"))
+        {
+            iPosition = tempFile.rfind("\\");
+        }
+        else
+        {
+            iPosition = tempFile.rfind("/");
+        }
         std::string tempDir = tempFile.substr(0, iPosition + 1);
         if (!MakeSureDirectoryPathExists(tempDir.c_str()))
         {
-            char chLogBuff[MAX_PATH] = { 0 };
+            memset(chLogBuff, '\0', sizeof(chLogBuff));
             //sprintf_s(chLogBuff, "%s save failed", chImgPath);
-            sprintf_s(chLogBuff, "path %s create failed.\n", chImgPath);
+            sprintf_s(chLogBuff, sizeof(chLogBuff), "%s save failed, create path failed.", szPath);
             printf(chLogBuff);
             return false;
         }
     }
 
+    size_t iWritedSpecialSize = 0;
     FILE* fp = NULL;
     //fp = fopen(chImgPath, "wb+");
-    fopen_s(&fp, chImgPath, "wb+");
+    errno_t errCode;
+    _set_errno(0);
+    errCode = fopen_s(&fp, szPath, "wb+");
     if (fp)
     {
         //iWritedSpecialSize = fwrite(pImgData, dwImgSize , 1, fp);
-        iWritedSpecialSize = fwrite(pImgData, 1, iImgSize, fp);
+        iWritedSpecialSize = fwrite(fileData, sizeof(byte), fileSize, fp);
+        fflush(fp);
         fclose(fp);
         fp = NULL;
         bRet = true;
     }
     else
     {
-        printf("create file failed.\n");
-        bRet = false;
+        memset(chLogBuff, '\0', sizeof(chLogBuff));
+        //sprintf_s(chLogBuff, "%s save failed", chImgPath);
+        sprintf_s(chLogBuff, sizeof(chLogBuff), "%s open failed, error code = %d", szPath, errCode);
+        printf(chLogBuff);
     }
-    if (iWritedSpecialSize == iImgSize)
+    if (iWritedSpecialSize == fileSize)
     {
-        char chLogBuff[MAX_PATH] = { 0 };
+        memset(chLogBuff, '\0', sizeof(chLogBuff));
         //sprintf_s(chLogBuff, "%s save success", chImgPath);
-        sprintf_s(chLogBuff, "%s save success\n", chImgPath);
+        sprintf_s(chLogBuff, sizeof(chLogBuff), "%s save success", szPath);
+        printf(chLogBuff);
+    }
+    else
+    {
+        memset(chLogBuff, '\0', sizeof(chLogBuff));
+        //sprintf_s(chLogBuff, "%s save success", chImgPath);
+        _get_errno(&errCode);
+        sprintf_s(chLogBuff, sizeof(chLogBuff), "%s write no match, size = %lu, write size = %lu, error code = %d.",
+            szPath,
+            fileSize,
+            iWritedSpecialSize,
+            errCode);
         printf(chLogBuff);
     }
 
-    printf("end SaveImgToDisk.\n");
+    //LOGFMTD("end SaveImgToDisk");
     return bRet;
 }
 
@@ -468,33 +508,7 @@ bool Tool_pingIPaddress(const char* IpAddress)
     }
 }
 
-void Tool_getFiles(const std::string& path, std::list<std::string>& files)
-{
-    long hFile = 0;
-    struct _finddata_t fileInfo;
-    std::string strPath;
-    hFile = _findfirst(strPath.assign(path).append("\\*").c_str(), &fileInfo);
-    if (hFile != -1)
-    {
-        do
-        {
-            if (fileInfo.attrib & _A_SUBDIR)
-            {
-                if (strcmp(fileInfo.name, ".") != 0 && strcmp(fileInfo.name, "..") != 0)
-                {
-                    Tool_getFiles(strPath.assign(path).append("\\").append(fileInfo.name), files);
-                }
-            }
-            else
-            {
-                files.push_back(strPath.assign(path).append("\\").append(fileInfo.name));
-            }
-        } while (_findnext(hFile, &fileInfo) == 0);
-        _findclose(hFile);
-    }
-}
-
-bool Tool_GetFileInfo(const char* FileName, void* infoBuf, size_t& bufLength)
+bool Tool_LoadFileDataToBuffer(const char* FileName, void* infoBuf, size_t& bufLength)
 {
     if (!Tool_IsFileExist(FileName))
     {
@@ -517,7 +531,9 @@ bool Tool_GetFileInfo(const char* FileName, void* infoBuf, size_t& bufLength)
     }
     bufLength = iFileSize;
     FILE* pFile = NULL;
-    fopen_s(&pFile, FileName, "rb");
+    errno_t errCode;
+    _set_errno(0);
+    errCode = fopen_s(&pFile, FileName, "rb");
     if (pFile)
     {
         size_t iReadSize = fread(infoBuf, 1, iFileSize, pFile);
@@ -533,6 +549,165 @@ bool Tool_GetFileInfo(const char* FileName, void* infoBuf, size_t& bufLength)
             return true;
         }
     }
-    printf("文件打开失败.\n");
-    return false;
+    else
+    {
+        printf("文件打开失败. error code = %d\n", errCode);
+        return false;
+    }
 }
+
+bool Tool_ExcuteCMDbyCreateProcess(const char* CmdName)
+{
+    char chCMD[256] = { 0 };
+    strcpy_s(chCMD, sizeof(chCMD), CmdName);
+
+    char pbuf[1024]; // 缓存  
+    STARTUPINFO si;
+    PROCESS_INFORMATION pi;
+
+    memset(&si, 0, sizeof(si));
+    si.cb = sizeof(si);
+    si.dwFlags = STARTF_USESTDHANDLES | STARTF_USESHOWWINDOW;
+    si.wShowWindow = SW_HIDE;
+    si.hStdOutput = NULL; // 设置需要传递到子进程的管道写句柄  
+
+    // 创建子进程，运行ping命令，子进程是可继承的  
+    if (!CreateProcess("C:\\WINDOWS\\system32\\cmd.exe", chCMD, NULL, NULL, TRUE, 0, NULL, NULL, &si, &pi))
+    {
+        //itoa(GetLastError(), pbuf, 10); 
+        sprintf_s(pbuf, sizeof(pbuf), "%d", GetLastError());
+        //MessageBox(hwnd, pbuf,"Information",0);
+        printf("%s\n", pbuf);
+
+        return false;
+    }
+
+    WaitForSingleObject(pi.hProcess, INFINITE);
+    CloseHandle(pi.hThread);
+    pi.hThread = NULL;
+    CloseHandle(pi.hProcess);
+    pi.hProcess = NULL;
+
+    return true;
+}
+
+void Tool_DeleteFileByCMD(const char* chFileName)
+{
+    if (NULL == chFileName || strlen(chFileName) <= 0)
+    {
+        return;
+    }
+    static char szCMD[1024] = { 0 };
+    memset(szCMD, '\0', sizeof(szCMD));
+    sprintf_s(szCMD, sizeof(szCMD), "/c del /f /s %s", chFileName);
+
+    Tool_ExcuteCMDbyCreateProcess(szCMD);
+}
+
+std::list<std::string> Tool_getFilesPath(const std::string& cate_dir, const std::string& filter)
+{
+    std::list<std::string> strFilesList;//存放文件名
+    std::string strDir = cate_dir + filter;
+#ifdef WIN32
+    _finddata_t file;
+    long lf;
+    //输入文件夹路径
+    if ((lf = _findfirst(strDir.c_str(), &file)) == -1)
+    {
+        printf("%s not found!!!", strDir.c_str());
+    }
+    else
+    {
+        std::string strPath = cate_dir;
+        do
+        {
+            //输出文件名
+            //cout<<file.name<<endl;
+            if (strcmp(file.name, ".") == 0 || strcmp(file.name, "..") == 0 || strlen(file.name) <= 0)
+                continue;
+            strFilesList.push_back(strPath + "\\" + file.name);
+        } while (_findnext(lf, &file) == 0);
+    }
+    _findclose(lf);
+#endif
+
+#ifdef linux
+    DIR *dir;
+    struct dirent *ptr;
+    char base[1000];
+
+    if ((dir = opendir(cate_dir.c_str())) == NULL)
+    {
+        perror("Open dir error...");
+        exit(1);
+    }
+
+    while ((ptr = readdir(dir)) != NULL)
+    {
+        if (strcmp(ptr->d_name, ".") == 0 || strcmp(ptr->d_name, "..") == 0)    ///current dir OR parrent dir
+            continue;
+        else if (ptr->d_type == 8)    ///file
+            //printf("d_name:%s/%s\n",basePath,ptr->d_name);
+            strFilesList.push_back(ptr->d_name);
+        else if (ptr->d_type == 10)    ///link file
+            //printf("d_name:%s/%s\n",basePath,ptr->d_name);
+            continue;
+        else if (ptr->d_type == 4)    ///dir
+        {
+            strFilesList.push_back(ptr->d_name);
+            /*
+            memset(base,'\0',sizeof(base));
+            strcpy(base,basePath);
+            strcat(base,"/");
+            strcat(base,ptr->d_nSame);
+            readFileList(base);
+            */
+        }
+    }
+    closedir(dir);
+#endif
+}
+
+SYSTEMTIME Tool_GetCurrentTime()
+{
+    SYSTEMTIME systime;
+    GetLocalTime(&systime);//本地时间
+    return systime;
+}
+
+const TCHAR* Tool_GetCurrentPath()
+{
+    static TCHAR szPath[MAX_PATH] = { 0 };
+    if (strlen(szPath) <= 0)
+    {
+        GetModuleFileName(NULL, szPath, MAX_PATH - 1);
+        PathRemoveFileSpec(szPath);
+    }
+    return szPath;
+}
+
+int Tool_SafeCloseThread(HANDLE& threadHandle)
+{
+    if (threadHandle == NULL)
+    {
+        return -1;
+    }
+    MSG msg;
+    DWORD dwRet = -1;
+    while (NULL != threadHandle && WAIT_OBJECT_0 != dwRet) // INFINITE
+    {
+        dwRet = MsgWaitForMultipleObjects(1, &threadHandle, FALSE, 100, QS_ALLINPUT);
+        if (dwRet == WAIT_OBJECT_0 + 1)
+        {
+            if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+            {
+                TranslateMessage(&msg);
+                DispatchMessage(&msg);
+            }
+        }
+    }
+    CloseHandle(threadHandle);
+    threadHandle = NULL;
+    return 0;
+}
+
